@@ -47,3 +47,30 @@ if not TAVILY_API_KEY:
 mistral_client = Mistral(api_key=MISTRAL_API_KEY) if MISTRAL_API_KEY else None
 tavily_client = TavilyClient(api_key=TAVILY_API_KEY) if TAVILY_API_KEY else None
 
+#  Tool Definitions (for Mistral function calling)
+
+TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "search_news",
+            "description": "Search for the latest news articles on a given topic using Tavily. Returns real, up-to-date news results with titles, content, and source URLs.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The search query for finding relevant news articles",
+                    },
+                    "max_results": {
+                        "type": "integer",
+                        "description": "Maximum number of results to return (default 5)",
+                        "default": 5,
+                    },
+                },
+                "required": ["query"],
+            },
+        },
+    }
+]
+
