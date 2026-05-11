@@ -19,3 +19,19 @@ from tavily import TavilyClient
 # Load env from root .env
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", ".env"))
 
+# ── App Setup ────────────────────────────────────────────────────────────────
+
+app = FastAPI(
+    title="BriefAI News Summarizer",
+    description="AI-powered news summarization API using Tavily + Mistral",
+    version="1.0.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
