@@ -19,7 +19,7 @@ from tavily import TavilyClient
 # Load env from root .env
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "..", ".env"))
 
-# ── App Setup ────────────────────────────────────────────────────────────────
+# App Setup
 
 app = FastAPI(
     title="BriefAI News Summarizer",
@@ -34,4 +34,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+#  Clients 
+MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
+TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
+
+if not MISTRAL_API_KEY:
+    print("⚠️  WARNING: MISTRAL_API_KEY not set.")
+if not TAVILY_API_KEY:
+    print("⚠️  WARNING: TAVILY_API_KEY not set.")
+
+mistral_client = Mistral(api_key=MISTRAL_API_KEY) if MISTRAL_API_KEY else None
+tavily_client = TavilyClient(api_key=TAVILY_API_KEY) if TAVILY_API_KEY else None
 
