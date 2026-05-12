@@ -114,7 +114,7 @@ BriefAI calls the Anthropic Messages API directly from the browser during develo
 
 <p align="center"> <img src="./public/image.png" alt="BriefAI Landing Page" width="100%"> </p>
 <p align="center"> <img src="./public/image2.png" alt="AI summary" width="100%"> </p>
-<p align="center"> <img src="./public/imarchitecturege2.png" alt="Project architecture" width="100%"> </p>
+<p align="center"> <img src="./public/architecture.png" alt="Project architecture" width="100%"> </p>
 
 ## License
 
