@@ -635,7 +635,7 @@ export default function App() {
             </div>
             <span style={{ fontWeight: 700, fontSize: 14, color: CHARCOAL }}>Brief<span style={{ color: MAROON }}>AI</span></span>
           </div>
-          <p style={{ margin: 0, fontSize: 13, color: "#B0ADA6" }}>© 2026 BriefAI · Raunak Kumar Jha - Backend & AI developer</p>
+          <p style={{ margin: 0, fontSize: 13, color: "#B0ADA6" }}>© 2026 BriefAI · Raunak Kumar Jha - Backend & AI developer.</p>
           <div style={{ display: "flex", gap: 20 }}>
             {["Privacy", "Terms", "API", "Contact"].map(l => (
               <span key={l} style={{ fontSize: 13, color: GRAY_MUTED, cursor: "pointer" }}>{l}</span>
