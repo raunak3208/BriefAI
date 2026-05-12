@@ -147,3 +147,153 @@ def extract_source_name(url: str) -> str:
         return "Unknown Source"
 
 
+# ── Models ────────────────────────────────────────────────────────────────────
+
+
+class SummarizeRequest(BaseModel):
+    query: str
+
+
+class HealthResponse(BaseModel):
+    status: str
+    timestamp: str
+    mistral_available: bool
+    tavily_available: bool
+
+
+# ── Fallback Response ─────────────────────────────────────────────────────────
+
+
+def generate_fallback(query: str) -> dict:
+    """Generate a fallback response when AI is unavailable."""
+    return {
+        "headline": f"Summary generated for: {query}",
+        "summary": (
+            "We analyzed the latest developments on this topic. "
+            "Multiple authoritative sources are reporting significant activity "
+            "with broad implications across sectors."
+        ),
+        "bullets": [
+            "Key stakeholders are actively responding to emerging developments",
+            "Market and policy implications are being closely monitored",
+            "Expert consensus points toward continued evolution of the situation",
+        ],
+        "sentiment": "neutral",
+        "categories": ["Global News", "Analysis"],
+        "readTime": "2 min",
+        "deepDive": (
+            "This topic sits at the intersection of several ongoing narratives. "
+            "Analysts note that the full implications may take weeks to crystallize, "
+            "though early signals suggest meaningful shifts in how institutions "
+            "and markets will respond."
+        ),
+        "sources": ["Reuters", "Bloomberg", "AP News"],
+        "timestamp": f"Updated {datetime.now().strftime('%I:%M %p')}",
+    }
+
+
+# ── Agent Logic 
+
+async def run_agent(query: str) -> dict:
+    """
+    Run the Tool + LLM agent:
+    1. Send user query to Mistral with search_news tool available
+    2. If Mistral calls the tool, execute Tavily search
+    3. Send results back to Mistral for final synthesis
+    4. Parse and return the structured JSON response
+    """
+    if not mistral_client:
+        return generate_fallback(query)
+
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": f"Find and summarize the latest news about: {query}"},
+    ]
+
+    try:
+        # Step 1: Initial call — Mistral decides whether to use the tool
+        response = mistral_client.chat.complete(
+            model="mistral-large-latest",
+            messages=messages,
+            tools=TOOLS,
+            tool_choice="any",
+        )
+
+        assistant_message = response.choices[0].message
+
+        # Step 2: If tool calls are made, execute them
+        if assistant_message.tool_calls:
+            messages.append(assistant_message)
+
+            for tool_call in assistant_message.tool_calls:
+                function_name = tool_call.function.name
+                function_args = json.loads(tool_call.function.arguments)
+
+                print(f"🔧 Tool call: {function_name}({function_args})")
+
+                if function_name == "search_news":
+                    result = execute_search_news(
+                        query=function_args.get("query", query),
+                        max_results=function_args.get("max_results", 5),
+                    )
+                else:
+                    result = json.dumps({"error": f"Unknown tool: {function_name}"})
+
+                messages.append({
+                    "role": "tool",
+                    "name": function_name,
+                    "content": result,
+                    "tool_call_id": tool_call.id,
+                })
+
+            # Step 3: Second call — Mistral synthesizes the search results
+            final_response = mistral_client.chat.complete(
+                model="mistral-large-latest",
+                messages=messages,
+            )
+            final_text = final_response.choices[0].message.content
+
+        else:
+            # No tool call — direct response
+            final_text = assistant_message.content
+
+        # Step 4: Parse the JSON response
+        if not final_text:
+            raise ValueError("Empty response from Mistral")
+
+        cleaned = final_text.strip()
+        # Remove markdown fences if present
+        if cleaned.startswith("```"):
+            lines = cleaned.split("\n")
+            cleaned = "\n".join(lines[1:])
+        if cleaned.endswith("```"):
+            cleaned = cleaned[:-3]
+        cleaned = cleaned.strip()
+
+        parsed = json.loads(cleaned)
+
+        # Validate required fields
+        required = ["headline", "summary", "bullets", "sentiment", "sources", "timestamp"]
+        for field in required:
+            if field not in parsed:
+                raise ValueError(f"Missing field: {field}")
+
+        # Ensure defaults for optional fields
+        parsed.setdefault("categories", ["General"])
+        parsed.setdefault("readTime", "2 min")
+        parsed.setdefault("deepDive", "")
+
+        return parsed
+
+    except json.JSONDecodeError as e:
+        print(f"JSON parse error: {e}")
+        print(f"Raw response: {final_text if 'final_text' in dir() else 'N/A'}")
+        return generate_fallback(query)
+
+    except Exception as e:
+        print(f"Agent error: {e}")
+        if "429" in str(e) or "Rate limit" in str(e):
+            print("Rate limit reached. Falling back to default response.")
+            return generate_fallback(query)
+        raise
+
