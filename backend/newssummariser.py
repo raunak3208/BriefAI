@@ -161,7 +161,7 @@ class HealthResponse(BaseModel):
     tavily_available: bool
 
 
-# ── Fallback Response ─────────────────────────────────────────────────────────
+# ── Fallback Response
 
 
 def generate_fallback(query: str) -> dict:
@@ -332,7 +332,7 @@ async def summarize_news(request: SummarizeRequest):
         print(f"Summarize error: {e}")
         raise HTTPException(
             status_code=500,
-            detail="An error occurred while generating the summary. Please try again.",
+            detail="An error occurred while generating the summary. Please try again later.",
         )
 
 
