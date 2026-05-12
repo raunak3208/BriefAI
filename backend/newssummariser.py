@@ -297,3 +297,47 @@ async def run_agent(query: str) -> dict:
             return generate_fallback(query)
         raise
 
+
+
+# Routes
+
+@app.get("/api/health", response_model=HealthResponse)
+async def health_check():
+    """Health check endpoint."""
+    return {
+        "status": "ok",
+        "timestamp": datetime.now().isoformat(),
+        "mistral_available": mistral_client is not None,
+        "tavily_available": tavily_client is not None,
+    }
+
+
+@app.post("/api/summarize")
+async def summarize_news(request: SummarizeRequest):
+    """
+    Accept a user query → Tavily collects news → Mistral summarizes → return structured JSON.
+    """
+    query = request.query.strip()
+
+    if not query:
+        raise HTTPException(status_code=400, detail="Query cannot be empty")
+
+    if len(query) > 1000:
+        raise HTTPException(status_code=400, detail="Query too long (max 1000 characters)")
+
+    try:
+        result = await run_agent(query)
+        return result
+    except Exception as e:
+        print(f"Summarize error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="An error occurred while generating the summary. Please try again.",
+        )
+
+
+#  Run 
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("newssummariser:app", host="0.0.0.0", port=8000, reload=True)
