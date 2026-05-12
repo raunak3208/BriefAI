@@ -74,8 +74,7 @@ TOOLS = [
     }
 ]
 
-# ── System Prompt ─────────────────────────────────────────────────────────────
-
+# System Prompt
 SYSTEM_PROMPT = """You are BriefAI, a premium AI news analyst agent. You have access to a news search tool.
 
 Your workflow:
@@ -95,5 +94,56 @@ After gathering news, respond ONLY with a valid JSON object (no markdown fences,
 - timestamp: string (e.g. "Updated just now")
 
 Be concise, authoritative, and factually grounded. Use REAL information from the search results. Return ONLY the JSON object in your final response."""
+
+
+# Tool Executor
+def execute_search_news(query: str, max_results: int = 5) -> str:
+    """Execute the Tavily news search and return formatted results."""
+    if not tavily_client:
+        return json.dumps({"error": "Tavily client not configured"})
+
+    try:
+        response = tavily_client.search(
+            query=query,
+            search_depth="advanced",
+            topic="news",
+            max_results=max_results,
+            include_answer=True,
+        )
+
+        results = []
+        for item in response.get("results", []):
+            results.append({
+                "title": item.get("title", ""),
+                "content": item.get("content", ""),
+                "url": item.get("url", ""),
+                "source": extract_source_name(item.get("url", "")),
+            })
+
+        return json.dumps({
+            "answer": response.get("answer", ""),
+            "results": results,
+            "query": query,
+        })
+
+    except Exception as e:
+        print(f"Tavily search error: {e}")
+        return json.dumps({"error": str(e), "results": []})
+
+
+def extract_source_name(url: str) -> str:
+    """Extract a readable source name from a URL."""
+    try:
+        from urllib.parse import urlparse
+        domain = urlparse(url).netloc
+        # Remove www. prefix
+        domain = domain.replace("www.", "")
+        # Get the main domain name
+        parts = domain.split(".")
+        if len(parts) >= 2:
+            return parts[-2].capitalize()
+        return domain.capitalize()
+    except Exception:
+        return "Unknown Source"
 
 
