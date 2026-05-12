@@ -112,6 +112,9 @@ http://localhost:5174
 BriefAI calls the Anthropic Messages API directly from the browser during development. In production, route this through your Python backend to keep the API key server-side.
 
 
+<p align="center"> <img src="./public/image.png" alt="BriefAI Landing Page" width="100%"> </p>
+
+
 ## License
 
 MIT © 2026 BriefAI
